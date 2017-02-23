@@ -14,22 +14,20 @@
 
   Written by Limor Fried/Ladyada for Adafruit Industries.  
   BSD license, all text above must be included in any redistribution
+  
+  Feb 2017 - code modified by Jochen Peters (no-go, Deadlockz)
+             to run on a feather M0 / Arduino Zero (?) with hardware SPI
  ****************************************************/
 
-
-// You can use any (4 or) 5 pins 
-#define sclk 13
-#define mosi 11
-#define cs   10
-#define rst  9
-#define dc   8
-
+#define cs      6
+#define rstpi   5
+#define dcpi    9
 
 // Color definitions
-#define	BLACK           0x0000
-#define	BLUE            0x001F
-#define	RED             0xF800
-#define	GREEN           0x07E0
+#define BLACK           0x0000
+#define BLUE            0x001F
+#define RED             0xF800
+#define GREEN           0x07E0
 #define CYAN            0x07FF
 #define MAGENTA         0xF81F
 #define YELLOW          0xFFE0  
@@ -39,19 +37,13 @@
 #include <Adafruit_SSD1331.h>
 #include <SPI.h>
 
-// Option 1: use any pins but a little slower
-Adafruit_SSD1331 display = Adafruit_SSD1331(cs, dc, mosi, sclk, rst);  
-
-// Option 2: must use the hardware SPI pins 
-// (for UNO thats sclk = 13 and sid = 11) and pin 10 must be 
-// an output. This is much faster - also required if you want
-// to use the microSD card (see the image drawing example)
-//Adafruit_SSD1331 display = Adafruit_SSD1331(cs, dc, rst);
+Adafruit_SSD1331 display = Adafruit_SSD1331(cs, dcpi, rstpi);
 
 float p = 3.1415926;
 
 void setup(void) {
   Serial.begin(9600);
+
   Serial.print("hello!");
   display.begin();
 
@@ -318,3 +310,4 @@ void lcdTestPattern(void)
     }
   }
 }
+

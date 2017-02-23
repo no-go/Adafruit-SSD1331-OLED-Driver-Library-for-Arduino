@@ -4,14 +4,17 @@
   Pick one up today in the adafruit shop!
   ------> http://www.adafruit.com/products/684
 
-  These displays use SPI to communicate, 4 or 5 pins are required to  
-  interface
+  These displays use hardware SPI to communicate
+  
   Adafruit invests time and resources providing this open source code, 
   please support Adafruit and open-source hardware by purchasing 
   products from Adafruit!
 
   Written by Limor Fried/Ladyada for Adafruit Industries.  
   BSD license, all text above must be included in any redistribution
+  
+  Feb 2017 - code modified by Jochen Peters (no-go, Deadlockz)
+             to run on a feather M0 / Arduino Zero (?) with hardware SPI
  ****************************************************/
 
 #include "Adafruit_GFX.h"
@@ -31,63 +34,25 @@
 /********************************** low level pin interface */
 
 inline void Adafruit_SSD1331::spiwrite(uint8_t c) {
-    
-    if (!_sid) {
-        SPI.transfer(c);
-        return;
-    }
-        
-    int8_t i;
-    
-    *sclkportreg |= sclkpin;
-    
-    for (i=7; i>=0; i--) {
-        *sclkportreg &= ~sclkpin;
-        //SCLK_PORT &= ~_BV(SCLK);
-        
-        if (c & _BV(i)) {
-            *sidportreg |= sidpin;
-            //digitalWrite(_sid, HIGH);
-            //SID_PORT |= _BV(SID);
-        } else {
-            *sidportreg &= ~sidpin;
-            //digitalWrite(_sid, LOW);
-            //SID_PORT &= ~_BV(SID);
-        }
-        
-        *sclkportreg |= sclkpin;
-        //SCLK_PORT |= _BV(SCLK);
-    }
+    SPI.transfer(c);
+    return;
 }
 
 
 void Adafruit_SSD1331::writeCommand(uint8_t c) {
-    *rsportreg &= ~ rspin;
-    //digitalWrite(_rs, LOW);
-    
-    *csportreg &= ~ cspin;
-    //digitalWrite(_cs, LOW);
-    
-    //Serial.print("C ");
+    digitalWrite(_cs, HIGH);
+    digitalWrite(_rs, LOW);
+    digitalWrite(_cs, LOW);
     spiwrite(c);
-    
-    *csportreg |= cspin;
-    //digitalWrite(_cs, HIGH);
+    digitalWrite(_cs, HIGH);
 }
 
 
 void Adafruit_SSD1331::writeData(uint8_t c) {
-    *rsportreg |= rspin;
-    //digitalWrite(_rs, HIGH);
-    
-    *csportreg &= ~ cspin;
-    //digitalWrite(_cs, LOW);
-    
-    //Serial.print("D ");
-    spiwrite(c);
-    
-    *csportreg |= cspin;
-    //digitalWrite(_cs, HIGH);
+    digitalWrite(_rs, HIGH);
+    digitalWrite(_cs, LOW);    
+    spiwrite(c);    
+    digitalWrite(_cs, HIGH);
 } 
 
 /***********************************/
@@ -149,7 +114,7 @@ void Adafruit_SSD1331::fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
 
   // Bounds check
   if ((x >= TFTWIDTH) || (y >= TFTHEIGHT))
-	return;
+  return;
 
   // Y bounds check
   if (y+h > TFTHEIGHT)
@@ -168,10 +133,10 @@ void Adafruit_SSD1331::fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
   writeCommand(0x01);
 
   writeCommand(SSD1331_CMD_DRAWRECT);
-  writeCommand(x & 0xFF);							// Starting column
-  writeCommand(y & 0xFF);							// Starting row
-  writeCommand((x+w-1) & 0xFF);	// End column
-  writeCommand((y+h-1) & 0xFF);	// End row
+  writeCommand(x & 0xFF);             // Starting column
+  writeCommand(y & 0xFF);             // Starting row
+  writeCommand((x+w-1) & 0xFF); // End column
+  writeCommand((y+h-1) & 0xFF); // End row
   
   // Outline color
   writeCommand((uint8_t)((fillcolor >> 11) << 1));
@@ -187,7 +152,7 @@ void Adafruit_SSD1331::fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
 }
 */
 
-void Adafruit_SSD1331::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) {	
+void Adafruit_SSD1331::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) { 
   // check rotation, move pixel around if necessary
   switch (getRotation()) {
   case 1:
@@ -212,9 +177,9 @@ void Adafruit_SSD1331::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, 
 
   // Boundary check
   if ((y0 >= TFTHEIGHT) && (y1 >= TFTHEIGHT))
-	return;
+  return;
   if ((x0 >= TFTWIDTH) && (x1 >= TFTWIDTH))
-	return;	
+  return; 
   if (x0 >= TFTWIDTH)
     x0 = TFTWIDTH - 1;
   if (y0 >= TFTHEIGHT)
@@ -258,25 +223,24 @@ void Adafruit_SSD1331::drawPixel(int16_t x, int16_t y, uint16_t color)
 
   goTo(x, y);
   
-  // setup for data
-  *rsportreg |= rspin;
-  *csportreg &= ~ cspin;
-  
+    digitalWrite(_rs, HIGH);
+    digitalWrite(_cs, LOW);    
+
   spiwrite(color >> 8);    
   spiwrite(color);
   
-  *csportreg |= cspin;  
+    digitalWrite(_cs, HIGH);  
 }
 
 void Adafruit_SSD1331::pushColor(uint16_t color) {
   // setup for data
-  *rsportreg |= rspin;
-  *csportreg &= ~ cspin;
+    digitalWrite(_rs, HIGH);
+    digitalWrite(_cs, LOW);    
   
   spiwrite(color >> 8);    
   spiwrite(color);
   
-  *csportreg |= cspin; 
+    digitalWrite(_cs, HIGH);  
 }
 
 
@@ -284,28 +248,24 @@ void Adafruit_SSD1331::begin(void) {
     // set pin directions
     pinMode(_rs, OUTPUT);
     
-    if (_sclk) {
-        pinMode(_sclk, OUTPUT);
-        sclkportreg = portOutputRegister(digitalPinToPort(_sclk));
-        sclkpin = digitalPinToBitMask(_sclk);
-        
-        pinMode(_sid, OUTPUT);
-        sidportreg = portOutputRegister(digitalPinToPort(_sid));
-        sidpin = digitalPinToBitMask(_sid);
-    } else {
         // using the hardware SPI
         SPI.begin();
-        SPI.setDataMode(SPI_MODE3);
-    }
-	
+        //SPI.setDataMode(SPI_MODE3);
+#ifdef SPI_HAS_TRANSACTION
+      SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
+#else
+      SPI.setClockDivider (4);
+#endif
+
     // Toggle RST low to reset; CS low so it'll listen to us
     pinMode(_cs, OUTPUT);
     digitalWrite(_cs, LOW);
+    digitalWrite(_rs, LOW);
     cspin = digitalPinToBitMask(_cs);
-    csportreg = portOutputRegister(digitalPinToPort(_cs));
+    //csportreg = portOutputRegister(digitalPinToPort(_cs));
     
     rspin = digitalPinToBitMask(_rs);
-    rsportreg = portOutputRegister(digitalPinToPort(_rs));
+    //rsportreg = portOutputRegister(digitalPinToPort(_rs));
     
     if (_rst) {
         pinMode(_rst, OUTPUT);
@@ -317,47 +277,47 @@ void Adafruit_SSD1331::begin(void) {
         delay(500);
     }
     // Initialization Sequence
-    writeCommand(SSD1331_CMD_DISPLAYOFF);  	// 0xAE
-    writeCommand(SSD1331_CMD_SETREMAP); 	// 0xA0
+    writeCommand(SSD1331_CMD_DISPLAYOFF);   // 0xAE
+    writeCommand(SSD1331_CMD_SETREMAP);   // 0xA0
 #if defined SSD1331_COLORORDER_RGB
-    writeCommand(0x72);				// RGB Color
+    writeCommand(0x72);       // RGB Color
 #else
-    writeCommand(0x76);				// BGR Color
+    writeCommand(0x76);       // BGR Color
 #endif
-    writeCommand(SSD1331_CMD_STARTLINE); 	// 0xA1
+    writeCommand(SSD1331_CMD_STARTLINE);  // 0xA1
     writeCommand(0x0);
-    writeCommand(SSD1331_CMD_DISPLAYOFFSET); 	// 0xA2
+    writeCommand(SSD1331_CMD_DISPLAYOFFSET);  // 0xA2
     writeCommand(0x0);
-    writeCommand(SSD1331_CMD_NORMALDISPLAY);  	// 0xA4
-    writeCommand(SSD1331_CMD_SETMULTIPLEX); 	// 0xA8
-    writeCommand(0x3F);  			// 0x3F 1/64 duty
-    writeCommand(SSD1331_CMD_SETMASTER);  	// 0xAD
+    writeCommand(SSD1331_CMD_NORMALDISPLAY);    // 0xA4
+    writeCommand(SSD1331_CMD_SETMULTIPLEX);   // 0xA8
+    writeCommand(0x3F);       // 0x3F 1/64 duty
+    writeCommand(SSD1331_CMD_SETMASTER);    // 0xAD
     writeCommand(0x8E);
-    writeCommand(SSD1331_CMD_POWERMODE);  	// 0xB0
+    writeCommand(SSD1331_CMD_POWERMODE);    // 0xB0
     writeCommand(0x0B);
-    writeCommand(SSD1331_CMD_PRECHARGE);  	// 0xB1
+    writeCommand(SSD1331_CMD_PRECHARGE);    // 0xB1
     writeCommand(0x31);
-    writeCommand(SSD1331_CMD_CLOCKDIV);  	// 0xB3
+    writeCommand(SSD1331_CMD_CLOCKDIV);   // 0xB3
     writeCommand(0xF0);  // 7:4 = Oscillator Frequency, 3:0 = CLK Div Ratio (A[3:0]+1 = 1..16)
-    writeCommand(SSD1331_CMD_PRECHARGEA);  	// 0x8A
+    writeCommand(SSD1331_CMD_PRECHARGEA);   // 0x8A
     writeCommand(0x64);
-    writeCommand(SSD1331_CMD_PRECHARGEB);  	// 0x8B
+    writeCommand(SSD1331_CMD_PRECHARGEB);   // 0x8B
     writeCommand(0x78);
-    writeCommand(SSD1331_CMD_PRECHARGEA);  	// 0x8C
+    writeCommand(SSD1331_CMD_PRECHARGEA);   // 0x8C
     writeCommand(0x64);
-    writeCommand(SSD1331_CMD_PRECHARGELEVEL);  	// 0xBB
+    writeCommand(SSD1331_CMD_PRECHARGELEVEL);   // 0xBB
     writeCommand(0x3A);
-    writeCommand(SSD1331_CMD_VCOMH);  		// 0xBE
+    writeCommand(SSD1331_CMD_VCOMH);      // 0xBE
     writeCommand(0x3E);
-    writeCommand(SSD1331_CMD_MASTERCURRENT);  	// 0x87
+    writeCommand(SSD1331_CMD_MASTERCURRENT);    // 0x87
     writeCommand(0x06);
-    writeCommand(SSD1331_CMD_CONTRASTA);  	// 0x81
+    writeCommand(SSD1331_CMD_CONTRASTA);    // 0x81
     writeCommand(0x91);
-    writeCommand(SSD1331_CMD_CONTRASTB);  	// 0x82
+    writeCommand(SSD1331_CMD_CONTRASTB);    // 0x82
     writeCommand(0x50);
-    writeCommand(SSD1331_CMD_CONTRASTC);  	// 0x83
+    writeCommand(SSD1331_CMD_CONTRASTC);    // 0x83
     writeCommand(0x7D);
-    writeCommand(SSD1331_CMD_DISPLAYON);	//--turn on oled panel    
+    writeCommand(SSD1331_CMD_DISPLAYON);  //--turn on oled panel    
 }
 
 /********************************* low level pin initialization */
@@ -377,3 +337,4 @@ Adafruit_SSD1331::Adafruit_SSD1331(uint8_t cs, uint8_t rs, uint8_t rst) : Adafru
     _sclk = 0;
     _rst = rst;
 }
+

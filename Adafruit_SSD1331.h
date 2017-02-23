@@ -4,14 +4,17 @@
   Pick one up today in the adafruit shop!
   ------> http://www.adafruit.com/products/684
 
-  These displays use SPI to communicate, 4 or 5 pins are required to  
-  interface
+  These displays use hardware SPI to communicate
+  
   Adafruit invests time and resources providing this open source code, 
   please support Adafruit and open-source hardware by purchasing 
   products from Adafruit!
 
   Written by Limor Fried/Ladyada for Adafruit Industries.  
   BSD license, all text above must be included in any redistribution
+  
+  Feb 2017 - code modified by Jochen Peters (no-go, Deadlockz)
+             to run on a feather M0 / Arduino Zero (?) with hardware SPI
  ****************************************************/
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -21,6 +24,8 @@
 #endif
 
 #define gfx_swap(a, b) { uint16_t t = a; a = b; b = t; }
+
+#define _BV(b) (1<<(b))
 
 #ifdef __SAM3X8E__
 typedef volatile RwReg PortReg;
