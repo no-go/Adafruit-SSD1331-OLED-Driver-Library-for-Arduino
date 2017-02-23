@@ -19,9 +19,9 @@
              to run on a feather M0 / Arduino Zero (?) with hardware SPI
  ****************************************************/
 
-#define cs      6
-#define rstpi   5
-#define dcpi    9
+#define OLED_DC      5
+#define OLED_CS     12
+#define OLED_RESET   6
 
 // Color definitions
 #define BLACK           0x0000
@@ -37,7 +37,7 @@
 #include <Adafruit_SSD1331.h>
 #include <SPI.h>
 
-Adafruit_SSD1331 display = Adafruit_SSD1331(cs, dcpi, rstpi);
+Adafruit_SSD1331 display = Adafruit_SSD1331(OLED_CS, OLED_DC, OLED_RESET);
 
 float p = 3.1415926;
 

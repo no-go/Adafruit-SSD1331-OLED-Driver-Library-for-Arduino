@@ -19,7 +19,7 @@ I did a evil hack to run the popular SSD1331 RGB oLED Display on
 hardware SPI with a feather M0. I compare the Adafruit SSD1306 Lib (monochrom)
 with the Adafruit SSD1331 Lib and modified it a bit.
 
-Strange I2C and spark stuff is removed. Sorry.
+Some strange I2C and spark stuff is removed. Sorry.
 
 Boards:
 
@@ -28,8 +28,26 @@ Boards:
 
 I hope, that Adafruit merge that Idea/code and make it better (using a wrapper design pattern, maybe?). 
 
+# Wireing SPI
+
+ -  Data (or DIN) to MOSI
+ -  SCK/Clk (or Clock) to SCK
+ -  RES (or Reset) to D6
+ -  DC (or D/C or Data-Command) to D5
+ -  CS (or chip select or ID) to 12
+ -  VCC to 3V
+ -  GND to GND
+
+# Examples
+
+ -  the normal test example
+ -  a clock and powerbar example
+
+![clock and powerbar example](clock-power.jpg)
+
 # Action picture
 
 Yes. It works! I am so happy about that. But it is a ugly version.
 
 ![RGB oLED on a Zero board](ssd1331_feather_M0.jpg)
+
